@@ -16,3 +16,12 @@ ForgeBuild currently supports the following C++ compilers:
 - `g++`
 
 More compiler support may be added in future releases.
+
+
+
+
+# teh installation instructions
+
+1. clone this repo with: gh repo clone /glkdrlgkrlzflnjkgh/ForgeBuild/
+2. run the following command: py (or python if python is on your PATH): py C:/path/to/forgebuild.py --init (run this from the folder you want your project to be in!)
+3. congrats! you have setup a ForgeBuild project!
