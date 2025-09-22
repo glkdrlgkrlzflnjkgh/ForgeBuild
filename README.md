@@ -1,6 +1,8 @@
 # ForgeBuild
-
-(note that by contributing, you give me rights to license your code under GPL-3.0!)
+ForgeBuild is a C++ build system programmed in python
+note that currently it is quite early in development, please contribute if you want to!
+# IMPORTANT NOTE TO ANYONE WHO WANTS TO CONTRIBUTE!
+**note that by contributing, you give me rights to license your code under GPL-3.0!**
 
 # Why?
 
