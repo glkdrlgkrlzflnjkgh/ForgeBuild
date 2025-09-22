@@ -4,8 +4,8 @@
 
 # Why?
 
-to put it simply. CMake was not the nicest... to my neurodiverse brain
-and yes. Now I have finally created ForgeBuild...
+to put it simply. CMake was not the nicest... to my neurodiverse brain (it was frustrating and actually, quite verbose...)
+and yes. that's why I made ForgeBuild.
 
 
 
