@@ -43,7 +43,7 @@ def init_project():
     main_cpp = """#include <iostream>
 
 int main() {
-    std::cout << "[ForgeBuild] Hello, world!" << std::endl;
+    std::cout << "Hello, world!" << std::endl;
     return 0;
 }
 """
