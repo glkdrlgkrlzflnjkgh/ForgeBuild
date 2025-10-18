@@ -123,7 +123,9 @@ def sync_dependencies(force=False):
     logger.info(f"Total dependency sync time: {end_sync - start_sync:.2f} seconds")
   
 def build_project(verbose=False, use_cache=False):
-
+    compiled_count = 0
+    if not use_cache:
+        logger.warning("DISABLING CACHING CAN MAKE BUILDS SLOW! ! !")
     config = load_config(verbose=verbose)
     cache = load_cache() if use_cache else {}
     target = list(config["targets"].keys())[0]
@@ -159,8 +161,7 @@ def build_project(verbose=False, use_cache=False):
 
         if not use_cache or cached_hash != src_hash or not os.path.exists(obj):
             rebuild_needed = True
-            if not use_cache:
-                logger.info("--force-rebuild was probably passed. Rebuilding...")
+
             logger.info(f"Compiling {src} -> {obj}")
             cmd = [compiler] + flags + ["-c", src, "-o", obj]
             result = subprocess.run(cmd, capture_output=True, text=True)
@@ -175,20 +176,33 @@ def build_project(verbose=False, use_cache=False):
                 logger.info("stderr:\n" + (result.stderr or " [empty]"))
                 return
             cache[src] = src_hash
+            compiled_count += 1
         else:
             logger.info(f"Skipping compile of {src} — no changes detected.")
 
     if not rebuild_needed and use_cache:
         logger.info("Skipping link — no changes detected.")
+        prnt = (
+        f"{compiled_count} files had to be compiled in this build."
+        if compiled_count != 1
+        else f"{compiled_count} file had to be compiled in this build."
+        )
+        logger.info(prnt)
         return
 
     logger.info(f"Linking: {' and '.join(object_files)} -> {output}")
     cmd = [compiler] + object_files + ["-o", output]
     result = subprocess.run(cmd, capture_output=True, text=True)
 
-
+    prnt = (
+    f"{compiled_count} files had to be compiled in this build."
+    if compiled_count != 1
+    else f"{compiled_count} file had to be compiled in this build."
+    )
+    logger.info(prnt)
     if result.returncode == 0:
         logger.info(f"Build succeeded: {output}")
+
         if use_cache:
             save_cache(cache)
     else:
@@ -197,7 +211,7 @@ def build_project(verbose=False, use_cache=False):
         logger.info("stderr:\n" + (result.stderr or " [empty]"))
 
 def main():
-    parser = argparse.ArgumentParser(description="ForgeBuild 2.6 — Python Build System for C++")
+    parser = argparse.ArgumentParser(description="ForgeBuild 3.0 — Python Build System for C++")
     parser.add_argument("--init", action="store_true", help="Initialize a new project")
     parser.add_argument("--check", action="store_true", help="Run diagnostics")
     parser.add_argument("--build", action="store_true", help="Build your project")
