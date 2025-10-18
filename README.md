@@ -16,7 +16,7 @@ More compiler support may be added in future releases.
 🚀 Installation Instructions
 - Clone this repo:
 gh repo clone glkdrlgkrlzflnjkgh/ForgeBuild
-- Run the init command from the folder where you want your project:
+- Run the init command from the folder where you want your project:
 py C:/path/to/forgebuild.py --init
 - (Use python instead of py if needed.)
 - Congrats! You’ve set up a ForgeBuild project!
