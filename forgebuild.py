@@ -3,7 +3,7 @@
 # Licensed under the MIT License
 # See LICENSE file or https://opensource.org/licenses/MIT for details
 
-import argparse, json, os, subprocess, sys, shutil, stat, hashlib
+import argparse, json, os, subprocess, sys, shutil, stat, hashlib, glob # added importation of glob for future use
 import logging
 import time
 
