@@ -304,7 +304,7 @@ def build_project(verbose=False, use_cache=False, fast=False):
         logger.info("stdout:\n" + (result.stdout or " [empty]"))
         logger.info("stderr:\n" + (result.stderr or " [empty]"))
 staffroll = [
-    "--ForgeBuild 3.0--",
+    "--ForgeBuild 4.0--",
     "",
     "",
     "--PROGRAMMING & DESIGN--",
