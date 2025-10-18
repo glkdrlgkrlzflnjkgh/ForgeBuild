@@ -1,32 +1,36 @@
-# ForgeBuild
-ForgeBuild is a C++ build system programmed in python
-note that currently it is quite early in development, please contribute if you want to!
-# IMPORTANT NOTE TO ANYONE WHO WANTS TO CONTRIBUTE!
-**note that by contributing, you give me rights to license your code under MIT!**
+🔨 ForgeBuild
+ForgeBuild is a C++ build system written in Python.
+It’s currently in early development — contributions are welcome!
 
-# Why?
+🧠 Why ForgeBuild?
+CMake wasn’t kind to my neurodiverse brain.
+It felt verbose, frustrating, and hard to reason about.
+So I built something better — something that makes sense to me, and hopefully to you too.
 
-to put it simply. CMake was not the nicest... to my neurodiverse brain (it was frustrating and actually, quite verbose...)
-and yes. that's why I made ForgeBuild.
-
-
-
-
-### 🔧 Supported Compilers
-ForgeBuild currently supports the following C++ compilers:
-- `clang++`
-- `g++`
-
+🔧 Supported Compilers
+ForgeBuild currently supports:
+- clang++
+- g++
 More compiler support may be added in future releases.
 
+🚀 Installation Instructions
+- Clone this repo:
+gh repo clone glkdrlgkrlzflnjkgh/ForgeBuild
+- Run the init command from the folder where you want your project:
+py C:/path/to/forgebuild.py --init
+- (Use python instead of py if needed.)
+- Congrats! You’ve set up a ForgeBuild project!
+
+📝 Contributing
+IMPORTANT NOTE TO ANYONE WHO WANTS TO CONTRIBUTE
+By contributing, you give me rights to license your code under the MIT License.
+This ensures ForgeBuild remains free and open for everyone.
+
+❤️ Made With Love
+Created by glkdrlgkrlzflnjkgh
+and contributors who believe build systems should be kind to your brain.
+
+📄 License
+ForgeBuild is licensed under the MIT License.
 
 
-
-# installation instructions
-
-1. clone this repo with: gh repo clone /glkdrlgkrlzflnjkgh/ForgeBuild/
-2. run the following command: py (or python if python is on your PATH): py C:/path/to/forgebuild.py --init (run this from the folder you want your project to be in!)
-3. congrats! you have setup a ForgeBuild project!
-
-
-made with ❤️ by glkdrlgkrlzflnjkgh (and contributors)
