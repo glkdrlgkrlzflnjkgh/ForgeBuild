@@ -149,6 +149,7 @@ int main() {
     config = {
         "targets": {
             "app": {
+                "nocache" : "no",
                 "sources": ["src/main.cpp"],
                 "output": "build/app.exe",
                 "compiler": "clang++",
@@ -179,15 +180,21 @@ py "{script_path}" @args
     logging.info("ForgeBuild project initialized")
 
 
-def build_project(verbose=False, use_cache=False):
+def build_project(verbose=False, use_cache=False, fast=False):
     compiled_count = 0
-    if not use_cache:
-        logger.warning("DISABLING CACHING CAN MAKE BUILDS SLOW! ! !")
+
     config = load_config(verbose=verbose)
-    cache = load_cache() if use_cache else {}
+    
     target = list(config["targets"].keys())[0]
     tconf = config["targets"][target]
-
+    nocache = tconf["nocache"]
+    if nocache == "yes":
+        logger.info("ignoring cache because nocache is in the project data file!")
+        use_cache = False
+    if not use_cache:
+        logger.warning("DISABLING CACHING CAN MAKE BUILDS SLOW! ! !")
+    cache = load_cache() if use_cache else {}
+    
 
     compiler = tconf["compiler"]
     if compiler == 'g++':
@@ -199,6 +206,9 @@ def build_project(verbose=False, use_cache=False):
     flags = tconf["flags"][:]
     if verbose and "-v" not in flags:
         flags.append("-v")
+    if fast and "-Ofast" not in flags:
+        logger.warning("--fast IS NOT RECOMMENDED!")
+        flags.append("-Ofast")
     sources = tconf["sources"]
     output = tconf["output"]
 
@@ -289,7 +299,7 @@ staffroll = [
     
 ]
 def main():
-    parser = argparse.ArgumentParser(description="ForgeBuild 3.0 — Python Build System for C++")
+    parser = argparse.ArgumentParser(description="ForgeBuild 3.1 — Python Build System for C++")
     parser.add_argument("--init", action="store_true", help="Initialize a new project")
     parser.add_argument("--check", action="store_true", help="Run diagnostics")
     parser.add_argument("--build", action="store_true", help="Build your project")
@@ -298,6 +308,7 @@ def main():
     parser.add_argument("--verbose", action="store_true", help="Enable verbose compiler output")
     parser.add_argument("--force-rebuild", action="store_true", help="Recompile everything, ignoring cache")
     parser.add_argument("--credits", action="store_true", help="view the credits!")
+    parser.add_argument("--fast", action="store_true", help="turn on -Ofast, NOT RECOMMENDED!")
     args = parser.parse_args()
 
     if not any(vars(args).values()):
@@ -318,9 +329,11 @@ def main():
         logger.critical("you cannot mix --build and --force-build!")
         exit(1)
     if args.build:
-            build_project(verbose=args.verbose, use_cache=True)
+            fst = args.fast
+            build_project(verbose=args.verbose, use_cache=True, fast=fst)
     if args.force_rebuild:
-            build_project(verbose=args.verbose, use_cache=False)
+            fst = args.fast
+            build_project(verbose=args.verbose, use_cache=False, fast=fst)
         
     
             
