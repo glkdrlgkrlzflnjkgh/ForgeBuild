@@ -206,7 +206,9 @@ def build_project(verbose=False, use_cache=False, fast=False):
     elif compiler == "clang":
         logger.critical("if you were intending to use clang (thinking it was an alias for clang++) it is NOT. please rebuild with clang++!")
         return
-
+    if not compiler in("g++","clang++"):
+        logger.critical("For security reasons, arbitrary commands ARE NOT ALLOWED!")
+        return
     flags = tconf["flags"][:]
     if verbose and "-v" not in flags:
         flags.append("-v")
