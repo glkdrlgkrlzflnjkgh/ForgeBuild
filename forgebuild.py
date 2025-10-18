@@ -19,6 +19,20 @@ def hash_file(path):
     with open(path, "rb") as f:
         logger.info(f"hashing file: {path}")
         return hashlib.sha256(f.read()).hexdigest()
+from pathlib import Path
+
+def expand_sources(source_list):
+    expanded = []
+    for entry in source_list:
+        if "*" in entry:
+            # Handle recursive globbing
+            base = entry.split("**")[0].rstrip("/")
+            pattern = entry.split("/")[-1]
+            matched = Path(base).rglob(pattern)
+            expanded.extend(str(path) for path in matched)
+        else:
+            expanded.append(entry)
+    return expanded
 
 def load_config(verbose=False):
     try:
@@ -215,7 +229,8 @@ def build_project(verbose=False, use_cache=False, fast=False):
     if fast and "-Ofast" not in flags:
         logger.warning("--fast IS NOT RECOMMENDED!")
         flags.append("-Ofast")
-    sources = tconf["sources"]
+    raw_sources = tconf["sources"]
+    sources = expand_sources(raw_sources)
     output = tconf["output"]
 
     if not os.path.exists(".forgebuild/cache"):
@@ -267,7 +282,7 @@ def build_project(verbose=False, use_cache=False, fast=False):
         logger.info(prnt)
         return
 
-    logger.info(f"Linking: {' -> '.join(object_files)} -> {output}")
+    logger.info(f"Linking: {' and '.join(object_files)} into {output}")
 
     cmd = [compiler] + object_files + ["-o", output]
     
@@ -305,7 +320,7 @@ staffroll = [
     
 ]
 def main():
-    parser = argparse.ArgumentParser(description="ForgeBuild 3.1 — Python Build System for C++")
+    parser = argparse.ArgumentParser(description="ForgeBuild 4.0 — Python Build System for C++")
     parser.add_argument("--init", action="store_true", help="Initialize a new project")
     parser.add_argument("--check", action="store_true", help="Run diagnostics")
     parser.add_argument("--build", action="store_true", help="Build your project")
