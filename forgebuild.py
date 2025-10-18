@@ -131,6 +131,7 @@ def build_project(verbose=False, use_cache=False):
     target = list(config["targets"].keys())[0]
     tconf = config["targets"][target]
 
+
     compiler = tconf["compiler"]
     if compiler == 'g++':
         logger.warning("g++ support is EXPERIMENTAL and is NOT recommended for production!")
@@ -143,8 +144,11 @@ def build_project(verbose=False, use_cache=False):
         flags.append("-v")
     sources = tconf["sources"]
     output = tconf["output"]
-    
-    os.makedirs(".forgebuild/cache", exist_ok=True)
+
+    if not os.path.exists(".forgebuild/cache"):
+            logger.info("creating cache folder...")
+            os.makedirs(".forgebuild/cache", exist_ok=False)        
+
     object_files = []
     rebuild_needed = False
 
@@ -191,7 +195,9 @@ def build_project(verbose=False, use_cache=False):
         return
 
     logger.info(f"Linking: {' and '.join(object_files)} -> {output}")
+
     cmd = [compiler] + object_files + ["-o", output]
+    
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     prnt = (
