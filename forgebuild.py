@@ -209,7 +209,22 @@ def build_project(verbose=False, use_cache=False):
         logger.critical(f"Linking failed with code {result.returncode}")
         logger.info("stdout:\n" + (result.stdout or " [empty]"))
         logger.info("stderr:\n" + (result.stderr or " [empty]"))
-
+staffroll = [
+    "--ForgeBuild 3.0--",
+    "",
+    "",
+    "--PROGRAMMING & DESIGN--",
+    "glkdrlgkrlzflnjkgh",
+    "",
+    "",
+    "--SPECIAL THANKS--",
+    "GitHub (for making it possible to have this project be open source!)",
+    "ForgeBuild is a FOSS Build System for C++, it is licensed under MIT, for more information, go to: ",
+    "https://github.com/glkdrlgkrlzflnjkgh/ForgeBuild",
+    "",
+    ""
+    
+]
 def main():
     parser = argparse.ArgumentParser(description="ForgeBuild 3.0 — Python Build System for C++")
     parser.add_argument("--init", action="store_true", help="Initialize a new project")
@@ -219,13 +234,17 @@ def main():
     parser.add_argument("--force-sync", action="store_true", help="Force re-sync of all dependencies")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose compiler output")
     parser.add_argument("--force-rebuild", action="store_true", help="Recompile everything, ignoring cache")
-
+    parser.add_argument("--credits", action="store_true", help="view the credits!")
     args = parser.parse_args()
 
     if not any(vars(args).values()):
         logger.info("HINT: if you were trying to build, you now need to run forgebuild --build")
         return
-
+    if args.credits:
+        for line in staffroll:
+            print(line)
+            time.sleep(.5)
+        return
     if args.init:
         init_project()
     if args.check:
