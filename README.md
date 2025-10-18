@@ -26,9 +26,7 @@ IMPORTANT NOTE TO ANYONE WHO WANTS TO CONTRIBUTE
 By contributing, you give me rights to license your code under the MIT License.
 This ensures ForgeBuild remains free and open for everyone.
 
-❤️ Made With Love \n
-Created by glkdrlgkrlzflnjkgh
-and contributors who believe build systems should be kind to your brain.
+❤️ Made With Love by glkdrlgkrlzflnjkgh and contributors who believe build systems should be kind to your brain.
 
 📄 License
 ForgeBuild is licensed under the MIT License.
