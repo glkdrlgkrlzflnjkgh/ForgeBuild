@@ -188,6 +188,10 @@ def build_project(verbose=False, use_cache=False, fast=False):
     target = list(config["targets"].keys())[0]
     tconf = config["targets"][target]
     nocache = tconf["nocache"]
+    if nocache not in("yes","no"):
+        logger.error("Invalid value for 'nocache'. Must be 'yes' or 'no'.")
+        return
+
     if nocache == "yes":
         logger.info("ignoring cache because nocache is in the project data file!")
         use_cache = False
@@ -261,7 +265,7 @@ def build_project(verbose=False, use_cache=False, fast=False):
         logger.info(prnt)
         return
 
-    logger.info(f"Linking: {' and '.join(object_files)} -> {output}")
+    logger.info(f"Linking: {' -> '.join(object_files)} -> {output}")
 
     cmd = [compiler] + object_files + ["-o", output]
     
