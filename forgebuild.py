@@ -1,5 +1,6 @@
 import argparse, json, os, subprocess, sys, shutil, stat, hashlib
 import logging
+import time
 
 logging.basicConfig(
     level=logging.INFO,
@@ -11,15 +12,20 @@ CACHE_PATH = ".forgebuild/cache.json"
 
 def hash_file(path):
     with open(path, "rb") as f:
-
+        logger.info(f"hashing file: {path}")
         return hashlib.sha256(f.read()).hexdigest()
 
-def load_config():
+def load_config(verbose=False):
     try:
+        logger.info("loading project configuration data...")
         with open("forgebuild.json", "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logger.error("forgebuild.json not found.")
+            data = json.load(f)
+            if verbose:
+                logger.info(f"project data: {data}")
+            return data
+        
+    except Exception as e:
+        logger.fatal(f"Error loading project configuration data: {e}")
         sys.exit(1)
 
 def load_cache():
@@ -66,6 +72,8 @@ def run_diagnostics():
     logger.info("Diagnostics complete.")
 
 def sync_dependencies(force=False):
+    start_sync = time.perf_counter()
+
     config = load_config()
     deps = config.get("dependencies", [])
 
@@ -99,15 +107,24 @@ def sync_dependencies(force=False):
                 continue
 
         logger.info(f"Cloning {name} from {repo} into {path}")
+        clone_start = time.perf_counter()
         result = subprocess.run(["gh", "repo", "clone", repo, path], capture_output=True, text=True)
+        clone_end = time.perf_counter()
+
         logger.info("stdout:\n" + (result.stdout or " [empty]"))
         logger.info("stderr:\n" + (result.stderr or " [empty]"))
 
         if result.returncode != 0:
             logger.error(f"Failed to clone {repo} — exit code {result.returncode}")
-    
+        else:
+            logger.info(f"Cloned {name} in {clone_end - clone_start:.2f} seconds")
+
+    end_sync = time.perf_counter()
+    logger.info(f"Total dependency sync time: {end_sync - start_sync:.2f} seconds")
+  
 def build_project(verbose=False, use_cache=False):
-    config = load_config()
+
+    config = load_config(verbose=verbose)
     cache = load_cache() if use_cache else {}
     target = list(config["targets"].keys())[0]
     tconf = config["targets"][target]
@@ -147,11 +164,15 @@ def build_project(verbose=False, use_cache=False):
             logger.info(f"Compiling {src} -> {obj}")
             cmd = [compiler] + flags + ["-c", src, "-o", obj]
             result = subprocess.run(cmd, capture_output=True, text=True)
-            logger.info("stdout:\n" + (result.stdout or " [empty]"))
-            logger.info("stderr:\n" + (result.stderr or " [empty]"))
+            logger.info(f"compiler returncode: {result.returncode}")
+            if verbose:
+                logger.info("stdout:\n" + (result.stdout or " [empty]"))
+                logger.info("stderr:\n" + (result.stderr or " [empty]"))
             if result.returncode != 0:
-                logger.fatal(f"Compilation failed for {src}")
                 
+                logger.fatal(f"Compilation failed for {src}")
+                logger.info("stdout:\n" + (result.stdout or " [empty]"))
+                logger.info("stderr:\n" + (result.stderr or " [empty]"))
                 return
             cache[src] = src_hash
         else:
@@ -164,15 +185,16 @@ def build_project(verbose=False, use_cache=False):
     logger.info(f"Linking: {' and '.join(object_files)} -> {output}")
     cmd = [compiler] + object_files + ["-o", output]
     result = subprocess.run(cmd, capture_output=True, text=True)
-    logger.info("stdout:\n" + (result.stdout or " [empty]"))
-    logger.info("stderr:\n" + (result.stderr or " [empty]"))
+
 
     if result.returncode == 0:
         logger.info(f"Build succeeded: {output}")
         if use_cache:
             save_cache(cache)
     else:
-        logger.error(f"Linking failed with code {result.returncode}")
+        logger.critical(f"Linking failed with code {result.returncode}")
+        logger.info("stdout:\n" + (result.stdout or " [empty]"))
+        logger.info("stderr:\n" + (result.stderr or " [empty]"))
 
 def main():
     parser = argparse.ArgumentParser(description="ForgeBuild 2.6 — Python Build System for C++")
@@ -197,7 +219,7 @@ def main():
     if args.sync:
         sync_dependencies(force=args.force_sync)
     if args.force_rebuild and args.build:
-        logger.error("you cannot mix --build and --force-build!")
+        logger.critical("you cannot mix --build and --force-build!")
         exit(1)
     if args.build:
             build_project(verbose=args.verbose, use_cache=True)
