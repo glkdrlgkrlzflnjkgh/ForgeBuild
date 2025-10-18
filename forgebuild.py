@@ -36,6 +36,76 @@ def save_cache(cache):
     with open(CACHE_PATH, "w") as f:
         json.dump(cache, f, indent=4)
 
+
+def run_diagnostics():
+    logger.info("Running diagnostics...")
+
+    # 1. Check for compilers
+    gcc_path = shutil.which("gcc")
+    clang_path = shutil.which("clang")
+
+    if gcc_path:
+        logger.info(f"Found GCC at {gcc_path}")
+    if clang_path:
+        logger.info(f"Found Clang at {clang_path}")
+    if not clang_path and not gcc_path:
+        logger.error("No supported C++ compiler found (GCC or Clang)")
+
+    # 2. Check for forgebuild.json
+    if os.path.isfile("forgebuild.json"):
+        logger.info("Found forgebuild.json in current directory")
+    else:
+        logger.warning("forgebuild.json not found — build config may be missing")
+
+    # 3. Check if cache folder exists
+    if os.path.isdir(".forgebuild/cache"):
+        logger.info("Cache folder exists")
+    else:
+        logger.warning("Cache folder missing — builds may be slower or fail")
+
+    logger.info("Diagnostics complete.")
+
+def sync_dependencies(force=False):
+    config = load_config()
+    deps = config.get("dependencies", [])
+
+    if not isinstance(deps, list):
+        logger.error("Invalid format: 'dependencies' must be a list of objects with 'name' and 'repo'")
+        return
+
+    include_dir = "include"
+    os.makedirs(include_dir, exist_ok=True)
+
+    for dep in deps:
+        if not isinstance(dep, dict):
+            logger.warning(f"Skipping malformed dependency entry: {dep}")
+            continue
+
+        repo = dep.get("repo")
+        name = dep.get("name")
+
+        if not repo or not name:
+            logger.warning(f"Dependency missing 'name' or 'repo': {dep}")
+            continue
+
+        path = os.path.join(include_dir, name)
+
+        if os.path.exists(path):
+            if force:
+                logger.info(f"Force re-syncing {name} from {repo}")
+                shutil.rmtree(path)
+            else:
+                logger.info(f"Skipping {name} — already cloned")
+                continue
+
+        logger.info(f"Cloning {name} from {repo} into {path}")
+        result = subprocess.run(["gh", "repo", "clone", repo, path], capture_output=True, text=True)
+        logger.info("stdout:\n" + (result.stdout or " [empty]"))
+        logger.info("stderr:\n" + (result.stderr or " [empty]"))
+
+        if result.returncode != 0:
+            logger.error(f"Failed to clone {repo} — exit code {result.returncode}")
+    
 def build_project(verbose=False, use_cache=False):
     config = load_config()
     cache = load_cache() if use_cache else {}
@@ -54,7 +124,7 @@ def build_project(verbose=False, use_cache=False):
         flags.append("-v")
     sources = tconf["sources"]
     output = tconf["output"]
-
+    
     os.makedirs(".forgebuild/cache", exist_ok=True)
     object_files = []
     rebuild_needed = False
@@ -80,7 +150,8 @@ def build_project(verbose=False, use_cache=False):
             logger.info("stdout:\n" + (result.stdout or " [empty]"))
             logger.info("stderr:\n" + (result.stderr or " [empty]"))
             if result.returncode != 0:
-                logger.error(f"Compilation failed for {src}")
+                logger.fatal(f"Compilation failed for {src}")
+                
                 return
             cache[src] = src_hash
         else:
@@ -90,7 +161,7 @@ def build_project(verbose=False, use_cache=False):
         logger.info("Skipping link — no changes detected.")
         return
 
-    logger.info(f"Linking: {' '.join(object_files)} -> {output}")
+    logger.info(f"Linking: {' and '.join(object_files)} -> {output}")
     cmd = [compiler] + object_files + ["-o", output]
     result = subprocess.run(cmd, capture_output=True, text=True)
     logger.info("stdout:\n" + (result.stdout or " [empty]"))
