@@ -1,3 +1,8 @@
+# ForgeBuild - A FOSS Build System for C++
+# Copyright (c) 2025 glkdrlgkrlzflnjkgh and contributors
+# Licensed under the MIT License
+# See LICENSE file or https://opensource.org/licenses/MIT for details
+
 import argparse, json, os, subprocess, sys, shutil, stat, hashlib
 import logging
 import time
@@ -121,7 +126,59 @@ def sync_dependencies(force=False):
 
     end_sync = time.perf_counter()
     logger.info(f"Total dependency sync time: {end_sync - start_sync:.2f} seconds")
-  
+def init_project():
+    if os.path.exists("forgebuild.json"):
+        logging.warning("Project already initialized. Skipping init to avoid overwriting existing files.")
+        return
+
+    os.makedirs("src", exist_ok=True)
+    os.makedirs("build", exist_ok=True)
+
+    # Write example main.cpp
+    hello_code = '''#include <iostream>
+
+int main() {
+    std::cout << "Hello, world!" << std::endl;
+    return 0;
+}
+'''
+    with open("src/main.cpp", "w") as f:
+        f.write(hello_code)
+
+    # Write forgebuild.json
+    config = {
+        "targets": {
+            "app": {
+                "sources": ["src/main.cpp"],
+                "output": "build/app.exe",
+                "compiler": "clang++",
+                "flags": ["-Wall"]
+            }
+        },
+        "dependencies": []
+    }
+
+    with open("forgebuild.json", "w") as f:
+        json.dump(config, f, indent=4)
+
+    # Generate PowerShell wrapper
+    script_path = os.path.abspath(__file__)
+    wrapper_code = f'''# ForgeBuild launcher script
+# Usage: .\\forgebuild.ps1 --build (or any other supported ForgeBuild arguments!)
+
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
+Set-Location $scriptPath
+echo 'running forgebuild wrapper v1.0...'
+echo 'forgebuild is located at: {script_path}'
+py "{script_path}" @args
+'''
+
+    with open("forgebuild.ps1", "w") as f:
+        f.write(wrapper_code)
+
+    logging.info("ForgeBuild project initialized")
+
+
 def build_project(verbose=False, use_cache=False):
     compiled_count = 0
     if not use_cache:
