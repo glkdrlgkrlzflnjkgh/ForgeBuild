@@ -209,9 +209,14 @@ echo 'running forgebuild wrapper v1.0...'
 echo 'forgebuild is located at: {script_path}'
 py "{script_path}" @args
 '''
+    builder_code = """
+./forgebuild --build
 
+"""
     with open("forgebuild.ps1", "w") as f:
         f.write(wrapper_code)
+    with open("build.ps1", "w") as f:
+        f.write(builder_code)
 
     logging.info("ForgeBuild project initialized")
 
