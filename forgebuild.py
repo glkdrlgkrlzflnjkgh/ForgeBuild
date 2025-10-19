@@ -6,7 +6,7 @@
 import argparse, json, os, subprocess, sys, shutil, stat, hashlib, glob # added importation of glob for future use
 import logging
 import time
-
+import threading
 logging.basicConfig(
     level=logging.INFO,
     format='[ForgeBuild] %(levelname)s: %(message)s'
@@ -18,26 +18,36 @@ CACHE_PATH = ".forgebuild/cache.json"
 def hash_file(path):
     with open(path, "rb") as f:
         logger.info(f"hashing file: {path}")
+        logger.info(f"hash of file {path}: {hashlib.sha256(f.read()).hexdigest()}")
         return hashlib.sha256(f.read()).hexdigest()
 from pathlib import Path
 
 def expand_sources(source_list):
-    expanded = []
+    expanded = set()
     logger.info("globbing sources... please wait.")
+    
     for entry in source_list:
         if "*" in entry:
-            # Handle recursive globbing
             base = entry.split("**")[0].rstrip("/")
             pattern = entry.split("/")[-1]
             matched = Path(base).rglob(pattern)
-            
-            expanded.extend(str(path) for path in matched)
-            
+            for path in matched:
+                norm = os.path.normpath(str(path))
+                # Skip hidden folders or dot-prefixed paths
+                if any(part.startswith('.') for part in Path(norm).parts):
+                    continue
+                expanded.add(norm)
         else:
-            expanded.append(entry)
-    for i in expanded:
+            norm = os.path.normpath(entry)
+            if any(part.startswith('.') for part in Path(norm).parts):
+                continue
+            expanded.add(norm)
+
+    # Final deduplication pass
+    final_sources = list(expanded)
+    for i in final_sources:
         logger.info(f"file search: {i}")
-    return expanded
+    return final_sources
 
 def load_config(verbose=False):
     try:
@@ -199,7 +209,14 @@ py "{script_path}" @args
     logging.info("ForgeBuild project initialized")
 
 
+
+import os
+import subprocess
+import threading
 import concurrent.futures
+
+cache_lock = threading.Lock()
+object_lock = threading.Lock()
 
 def build_project(verbose=False, use_cache=False, fast=False, jobs=None):
     compiled_count = 0
@@ -250,14 +267,16 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None):
     os.makedirs(".forgebuild/cache", exist_ok=True)
 
     object_files = []
-    compile_tasks = []
 
     def compile_source(src):
         nonlocal compiled_count
         obj = os.path.join(".forgebuild", "cache", os.path.basename(src).replace(".cpp", ".o"))
-        object_files.append(obj)
 
-        src_hash = hash_file(src)
+        with object_lock:
+            object_files.append(obj)
+
+        with cache_lock:
+            src_hash = hash_file(src) # one read at a time DANTE!
         cached_hash = cache.get(src)
 
         if verbose:
@@ -265,7 +284,8 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None):
             logger.info(f"Cached hash: {cached_hash}")
 
         if not use_cache or cached_hash != src_hash or not os.path.exists(obj):
-            logger.info(f"Compiling {src} -> {obj}")
+            thr_id = threading.get_ident()
+            logger.info(f"Compiling {src} -> {obj} on thread {thr_id}")
             cmd = [compiler] + flags + ["-c", src, "-o", obj]
             result = subprocess.run(cmd, capture_output=True, text=True)
             if verbose:
@@ -277,8 +297,9 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None):
                 logger.info("stdout:\n" + (result.stdout or " [empty]"))
                 logger.info("stderr:\n" + (result.stderr or " [empty]"))
                 return False
-            cache[src] = src_hash
-            logger.info(f"finished compiling {src}")
+            with cache_lock:
+                cache[src] = src_hash
+            logger.info(f"thread {thr_id} has finished compiling {src}")
             compiled_count += 1
         else:
             logger.info(f"Skipping compile of {src} — no changes detected.")
@@ -303,10 +324,15 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None):
     )
     logger.info(prnt)
 
-    if result.returncode == 0:
+    if result.returncode == 0 and result:
         logger.info(f"Build succeeded: {output}")
-        if use_cache:
-            save_cache(cache)
+        logger.info("saving to cache...")
+        try:
+            with cache_lock:
+                save_cache(cache)
+        except Exception as e:
+            logger.error(f"cache saving failed! {e}")
+        logger.info("cache saved!")
     else:
         logger.critical(f"Linking failed with code {result.returncode}")
         logger.info("stdout:\n" + (result.stdout or " [empty]"))
