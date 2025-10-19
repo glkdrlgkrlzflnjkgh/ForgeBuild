@@ -23,6 +23,7 @@ from pathlib import Path
 
 def expand_sources(source_list):
     expanded = []
+    logger.info("globbing sources... please wait.")
     for entry in source_list:
         if "*" in entry:
             # Handle recursive globbing
@@ -330,6 +331,7 @@ def main():
     parser.add_argument("--force-rebuild", action="store_true", help="Recompile everything, ignoring cache")
     parser.add_argument("--credits", action="store_true", help="view the credits!")
     parser.add_argument("--fast", action="store_true", help="turn on -Ofast, NOT RECOMMENDED!")
+    parser.add_argument("--fr", action="store_true", help="see --force-rebuild")
     args = parser.parse_args()
 
     if not any(vars(args).values()):
@@ -352,7 +354,7 @@ def main():
     if args.build:
             fst = args.fast
             build_project(verbose=args.verbose, use_cache=True, fast=fst)
-    if args.force_rebuild:
+    if args.force_rebuild or args.fr:
             fst = args.fast
             build_project(verbose=args.verbose, use_cache=False, fast=fst)
         
