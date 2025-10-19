@@ -30,9 +30,13 @@ def expand_sources(source_list):
             base = entry.split("**")[0].rstrip("/")
             pattern = entry.split("/")[-1]
             matched = Path(base).rglob(pattern)
+            
             expanded.extend(str(path) for path in matched)
+            
         else:
             expanded.append(entry)
+    for i in expanded:
+        logger.info(f"file search: {i}")
     return expanded
 
 def load_config(verbose=False):
@@ -195,15 +199,16 @@ py "{script_path}" @args
     logging.info("ForgeBuild project initialized")
 
 
-def build_project(verbose=False, use_cache=False, fast=False):
-    compiled_count = 0
+import concurrent.futures
 
+def build_project(verbose=False, use_cache=False, fast=False, jobs=None):
+    compiled_count = 0
     config = load_config(verbose=verbose)
-    
+
     target = list(config["targets"].keys())[0]
     tconf = config["targets"][target]
     nocache = tconf["nocache"]
-    if nocache not in("yes","no"):
+    if nocache not in ("yes", "no"):
         logger.error("Invalid value for 'nocache'. Must be 'yes' or 'no'.")
         return
 
@@ -213,7 +218,6 @@ def build_project(verbose=False, use_cache=False, fast=False):
     if not use_cache:
         logger.warning("DISABLING CACHING CAN MAKE BUILDS SLOW! ! !")
     cache = load_cache() if use_cache else {}
-    
 
     compiler = tconf["compiler"]
     if compiler == 'g++':
@@ -221,27 +225,35 @@ def build_project(verbose=False, use_cache=False, fast=False):
     elif compiler == "clang":
         logger.critical("if you were intending to use clang (thinking it was an alias for clang++) it is NOT. please rebuild with clang++!")
         return
-    if not compiler in("g++","clang++"):
+    if compiler not in ("g++", "clang++"):
         logger.critical("For security reasons, arbitrary commands ARE NOT ALLOWED!")
         return
+
     flags = tconf["flags"][:]
     if verbose and "-v" not in flags:
         flags.append("-v")
     if fast and "-Ofast" not in flags:
         logger.warning("--fast IS NOT RECOMMENDED!")
         flags.append("-Ofast")
+
     raw_sources = tconf["sources"]
     sources = expand_sources(raw_sources)
-    output = tconf["output"]
 
-    if not os.path.exists(".forgebuild/cache"):
-            logger.info("creating cache folder...")
-            os.makedirs(".forgebuild/cache", exist_ok=False)        
+    for sr in sources:
+        if os.path.isfile(sr):
+            ext = os.path.splitext(sr)[1].lower()
+            if ext in [".h", ".hpp"]:
+                logger.critical("source files CANNOT be .hpp or .h files!")
+                return
+
+    output = tconf["output"]
+    os.makedirs(".forgebuild/cache", exist_ok=True)
 
     object_files = []
-    rebuild_needed = False
+    compile_tasks = []
 
-    for src in sources:
+    def compile_source(src):
+        nonlocal compiled_count
         obj = os.path.join(".forgebuild", "cache", os.path.basename(src).replace(".cpp", ".o"))
         object_files.append(obj)
 
@@ -250,54 +262,49 @@ def build_project(verbose=False, use_cache=False, fast=False):
 
         if verbose:
             logger.info(f"Current hash: {src_hash}")
-            logger.info(f"Cached hash: {cache.get(src)}")
+            logger.info(f"Cached hash: {cached_hash}")
 
         if not use_cache or cached_hash != src_hash or not os.path.exists(obj):
-            rebuild_needed = True
-
             logger.info(f"Compiling {src} -> {obj}")
             cmd = [compiler] + flags + ["-c", src, "-o", obj]
             result = subprocess.run(cmd, capture_output=True, text=True)
-            logger.info(f"compiler returncode: {result.returncode}")
             if verbose:
                 logger.info("stdout:\n" + (result.stdout or " [empty]"))
                 logger.info("stderr:\n" + (result.stderr or " [empty]"))
             if result.returncode != 0:
-                
                 logger.fatal(f"Compilation failed for {src}")
+                logger.info("build FAILED.")
                 logger.info("stdout:\n" + (result.stdout or " [empty]"))
                 logger.info("stderr:\n" + (result.stderr or " [empty]"))
-                return
+                return False
             cache[src] = src_hash
+            logger.info(f"finished compiling {src}")
             compiled_count += 1
         else:
             logger.info(f"Skipping compile of {src} — no changes detected.")
+        return True
 
-    if not rebuild_needed and use_cache:
-        logger.info("Skipping link — no changes detected.")
-        prnt = (
-        f"{compiled_count} files had to be compiled in this build."
-        if compiled_count != 1
-        else f"{compiled_count} file had to be compiled in this build."
-        )
-        logger.info(prnt)
-        return
+    with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as executor:
+        logger.info(f"using: {jobs or os.cpu_count()} threads!")
+        futures = {executor.submit(compile_source, src): src for src in sources}
+        for future in concurrent.futures.as_completed(futures):
+            if future.result() is False:
+                logger.critical("Build aborted due to compilation error.")
+                return
 
     logger.info(f"Linking: {' and '.join(object_files)} into {output}")
-
     cmd = [compiler] + object_files + ["-o", output]
-    
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     prnt = (
-    f"{compiled_count} files had to be compiled in this build."
-    if compiled_count != 1
-    else f"{compiled_count} file had to be compiled in this build."
+        f"{compiled_count} files had to be compiled in this build."
+        if compiled_count != 1
+        else f"{compiled_count} file had to be compiled in this build."
     )
     logger.info(prnt)
+
     if result.returncode == 0:
         logger.info(f"Build succeeded: {output}")
-
         if use_cache:
             save_cache(cache)
     else:
@@ -305,7 +312,7 @@ def build_project(verbose=False, use_cache=False, fast=False):
         logger.info("stdout:\n" + (result.stdout or " [empty]"))
         logger.info("stderr:\n" + (result.stderr or " [empty]"))
 staffroll = [
-    "--ForgeBuild 4.0--",
+    "--ForgeBuild 4.1--",
     "",
     "",
     "--PROGRAMMING & DESIGN--",
@@ -321,7 +328,7 @@ staffroll = [
     
 ]
 def main():
-    parser = argparse.ArgumentParser(description="ForgeBuild 4.0 — Python Build System for C++")
+    parser = argparse.ArgumentParser(description="ForgeBuild 4.1 — Python Build System for C++")
     parser.add_argument("--init", action="store_true", help="Initialize a new project")
     parser.add_argument("--check", action="store_true", help="Run diagnostics")
     parser.add_argument("--build", action="store_true", help="Build your project")
@@ -332,6 +339,7 @@ def main():
     parser.add_argument("--credits", action="store_true", help="view the credits!")
     parser.add_argument("--fast", action="store_true", help="turn on -Ofast, NOT RECOMMENDED!")
     parser.add_argument("--fr", action="store_true", help="see --force-rebuild")
+    parser.add_argument("--jobs", type=int, help="Number of parallel compile jobs (default: auto)")
     args = parser.parse_args()
 
     if not any(vars(args).values()):
@@ -340,7 +348,7 @@ def main():
     if args.credits:
         for line in staffroll:
             print(line)
-            time.sleep(.5)
+            time.sleep(.08)
         return
     if args.init:
         init_project()
@@ -353,10 +361,10 @@ def main():
         exit(1)
     if args.build:
             fst = args.fast
-            build_project(verbose=args.verbose, use_cache=True, fast=fst)
+            build_project(verbose=args.verbose, use_cache=True, fast=fst,jobs=args.jobs)
     if args.force_rebuild or args.fr:
             fst = args.fast
-            build_project(verbose=args.verbose, use_cache=False, fast=fst)
+            build_project(verbose=args.verbose, use_cache=False, fast=fst,jobs=args.jobs)
         
     
             
