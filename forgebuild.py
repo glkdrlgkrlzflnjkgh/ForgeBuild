@@ -16,10 +16,17 @@ logger = logging.getLogger("ForgeBuild")
 CACHE_PATH = ".forgebuild/cache.json"
 
 def hash_file(path):
-    with open(path, "rb") as f:
-        logger.info(f"hashing file: {path}")
-        logger.info(f"hash of file {path}: {hashlib.sha256(f.read()).hexdigest()}")
-        return hashlib.sha256(f.read()).hexdigest()
+    import hashlib
+    h = hashlib.sha256()
+    try:
+        with open(path, "rb") as f:
+            size = os.path.getsize(path)
+            while chunk := f.read(8192):
+                h.update(chunk)
+        return h.hexdigest()
+    except Exception as e:
+        logger.error(f"Failed to hash {path}: {e}")
+        return "ERROR"
 from pathlib import Path
 
 def expand_sources(source_list):
@@ -234,6 +241,7 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None):
         use_cache = False
     if not use_cache:
         logger.warning("DISABLING CACHING CAN MAKE BUILDS SLOW! ! !")
+
     cache = load_cache() if use_cache else {}
 
     compiler = tconf["compiler"]
@@ -270,20 +278,26 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None):
 
     def compile_source(src):
         nonlocal compiled_count
-        obj = os.path.join(".forgebuild", "cache", os.path.basename(src).replace(".cpp", ".o"))
+        obj = os.path.join(".forgebuild", "cache", os.path.basename(src).replace(".cpp", ".forgebin"))
 
         with object_lock:
             object_files.append(obj)
 
         with cache_lock:
-            src_hash = hash_file(src) # one read at a time DANTE!
-        cached_hash = cache.get(src)
+            src_hash = hash_file(src)
+            cached_hash = cache.get(src)
 
-        if verbose:
-            logger.info(f"Current hash: {src_hash}")
-            logger.info(f"Cached hash: {cached_hash}")
+            if verbose:
+                logger.info(f"Current hash: {src_hash}")
+                logger.info(f"Cached hash: {cached_hash}")
 
-        if not use_cache or cached_hash != src_hash or not os.path.exists(obj):
+            should_compile = (
+                not use_cache or
+                cached_hash != src_hash or
+                not os.path.exists(obj)
+            )
+
+        if should_compile:
             thr_id = threading.get_ident()
             logger.info(f"Compiling {src} -> {obj} on thread {thr_id}")
             cmd = [compiler] + flags + ["-c", src, "-o", obj]
@@ -337,6 +351,7 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None):
         logger.critical(f"Linking failed with code {result.returncode}")
         logger.info("stdout:\n" + (result.stdout or " [empty]"))
         logger.info("stderr:\n" + (result.stderr or " [empty]"))
+
 staffroll = [
     "--ForgeBuild 4.1--",
     "",
