@@ -230,12 +230,14 @@ import concurrent.futures
 cache_lock = threading.Lock()
 object_lock = threading.Lock()
 
-def build_project(verbose=False, use_cache=False, fast=False, jobs=None):
+def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=None):
+    build_timer = time.perf_counter()
     compiled_count = 0
     config = load_config(verbose=verbose)
 
     target = list(config["targets"].keys())[0]
     tconf = config["targets"][target]
+    
     nocache = tconf["nocache"]
     if nocache not in ("yes", "no"):
         logger.error("Invalid value for 'nocache'. Must be 'yes' or 'no'.")
@@ -250,13 +252,15 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None):
     cache = load_cache() if use_cache else {}
 
     compiler = tconf["compiler"]
+    if comp != None:
+        compiler = comp
     if compiler == 'g++':
         logger.warning("g++ support is EXPERIMENTAL and is NOT recommended for production!")
     elif compiler == "clang":
         logger.critical("if you were intending to use clang (thinking it was an alias for clang++) it is NOT. please rebuild with clang++!")
         return
     if compiler not in ("g++", "clang++"):
-        logger.critical("For security reasons, arbitrary commands ARE NOT ALLOWED!")
+        logger.critical("supported compilers are: clang++ (recommended) and g++ (not recommended)")
         return
 
     flags = tconf["flags"][:]
@@ -277,12 +281,23 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None):
                 return
 
     output = tconf["output"]
+    exe_path = tconf.get("output", "build/app.exe")  # fallback if not defined
+    if os.path.exists(exe_path):
+        try:
+            os.remove(exe_path)
+            logger.info(f"Deleted previous executable: {exe_path}")
+        except Exception as e:
+            logger.warning(f"Could not delete old executable: {e}")
+
     os.makedirs(".forgebuild/cache", exist_ok=True)
 
     object_files = []
 
     def compile_source(src):
+        comp_time = time.perf_counter()
+
         nonlocal compiled_count
+        
         obj = os.path.join(".forgebuild", "cache", os.path.basename(src).replace(".cpp", ".forgebin"))
 
         with object_lock:
@@ -318,12 +333,16 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None):
                 return False
             with cache_lock:
                 cache[src] = src_hash
+            end = time.perf_counter()
             logger.info(f"thread {thr_id} has finished compiling {src}")
+            logger.info(f"thread {thr_id} took: {end - comp_time:.3f}ms")
+
+
             compiled_count += 1
         else:
             logger.info(f"Skipping compile of {src} — no changes detected.")
         return True
-
+        
     with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as executor:
         logger.info(f"using: {jobs or os.cpu_count()} threads!")
         futures = {executor.submit(compile_source, src): src for src in sources}
@@ -356,6 +375,10 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None):
         logger.critical(f"Linking failed with code {result.returncode}")
         logger.info("stdout:\n" + (result.stdout or " [empty]"))
         logger.info("stderr:\n" + (result.stderr or " [empty]"))
+    bend = time.perf_counter()
+    final_ms = (bend - build_timer) * 1000
+    logger.info(f"build took: {final_ms}ms")
+
 
 staffroll = [
     "--ForgeBuild 4.1--",
@@ -386,6 +409,8 @@ def main():
     parser.add_argument("--fast", action="store_true", help="turn on -Ofast, NOT RECOMMENDED!")
     parser.add_argument("--fr", action="store_true", help="see --force-rebuild")
     parser.add_argument("--jobs", type=int, help="Number of parallel compile jobs (default: auto)")
+    parser.add_argument('--run', action='store_true', help='Run the compiled executable after build')
+    parser.add_argument("--compiler", type=str, help="override the compiler that will be used for compilation and linking")
     args = parser.parse_args()
 
     if not any(vars(args).values()):
@@ -407,10 +432,17 @@ def main():
         exit(1)
     if args.build:
             fst = args.fast
-            build_project(verbose=args.verbose, use_cache=True, fast=fst,jobs=args.jobs)
+            build_project(verbose=args.verbose, use_cache=True, fast=fst,jobs=args.jobs,comp=args.compiler)
     if args.force_rebuild or args.fr:
             fst = args.fast
-            build_project(verbose=args.verbose, use_cache=False, fast=fst,jobs=args.jobs)
+            build_project(verbose=args.verbose, use_cache=False, fast=fst,jobs=args.jobs,comp=args.compiler)
+    if args.run:
+        exe_path = os.path.join('build', 'app.exe')
+        if os.path.exists(exe_path):
+            logger.info(f"Running: {exe_path}")
+            os.system(f'"{exe_path}"')
+        else:
+            logger.error("Executable not found. Did the build fail?")
         
     
             
