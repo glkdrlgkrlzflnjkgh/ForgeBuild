@@ -3,7 +3,7 @@
 # Licensed under the MIT License
 # See LICENSE file or https://opensource.org/licenses/MIT for details
 
-import argparse, json, os, subprocess, sys, shutil, stat, hashlib, glob # added importation of glob for future use
+import argparse, json, os, subprocess, sys, shutil, stat, hashlib, glob 
 import logging
 import time
 import threading
@@ -292,6 +292,7 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
     if compiler not in ("g++", "clang++"):
         logger.critical("supported compilers are: clang++ (recommended) and g++ (not recommended)")
         return
+    logger.info(f"using compiler: {compiler}")
 
     flags = tconf["flags"][:]
     if verbose and "-v" not in flags:
