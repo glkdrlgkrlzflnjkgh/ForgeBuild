@@ -229,6 +229,34 @@ import concurrent.futures
 
 cache_lock = threading.Lock()
 object_lock = threading.Lock()
+def run_project(verbose=False):
+    config = load_config(verbose=verbose)
+    target = list(config["targets"].keys())[0]
+    tconf = config["targets"][target]
+    exe_path = tconf["output"]
+    logger.info(f"running compiled EXE... EXE path is {exe_path} ")
+
+    process = subprocess.Popen(
+        exe_path,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True  # ensures output is decoded to strings
+    )
+
+    # Read stdout and stderr line by line
+    while True:
+        output = process.stdout.readline()
+        error = process.stderr.readline()
+
+        if output:
+            print(f"{output.strip()}")
+
+        if error:
+            print(f"{error.strip()}")
+
+        if output == '' and error == '' and process.poll() is not None:
+            break
+
 
 def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=None):
     build_timer = time.perf_counter()
@@ -237,7 +265,7 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
 
     target = list(config["targets"].keys())[0]
     tconf = config["targets"][target]
-    
+
     nocache = tconf["nocache"]
     if nocache not in ("yes", "no"):
         logger.error("Invalid value for 'nocache'. Must be 'yes' or 'no'.")
@@ -256,6 +284,8 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
         compiler = comp
     if compiler == 'g++':
         logger.warning("g++ support is EXPERIMENTAL and is NOT recommended for production!")
+        logger.warning("g++ is NOT compatible with caching. disabling caching...")
+        use_cache = False
     elif compiler == "clang":
         logger.critical("if you were intending to use clang (thinking it was an alias for clang++) it is NOT. please rebuild with clang++!")
         return
@@ -432,17 +462,15 @@ def main():
         exit(1)
     if args.build:
             fst = args.fast
+            if args.compiler is not None and not (args.fr or args.force_rebuild):
+                logger.critical("force-rebuilding is required when overriding compilers!")
+                return
             build_project(verbose=args.verbose, use_cache=True, fast=fst,jobs=args.jobs,comp=args.compiler)
     if args.force_rebuild or args.fr:
             fst = args.fast
             build_project(verbose=args.verbose, use_cache=False, fast=fst,jobs=args.jobs,comp=args.compiler)
     if args.run:
-        exe_path = os.path.join('build', 'app.exe')
-        if os.path.exists(exe_path):
-            logger.info(f"Running: {exe_path}")
-            os.system(f'"{exe_path}"')
-        else:
-            logger.error("Executable not found. Did the build fail?")
+        run_project(verbose=args.verbose)
         
     
             
