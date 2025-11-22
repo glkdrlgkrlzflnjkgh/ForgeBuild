@@ -6,11 +6,40 @@
 import argparse, json, os, subprocess, sys, shutil, stat, hashlib, glob 
 import logging
 import time
+
 import threading
-logging.basicConfig(
-    level=logging.INFO,
-    format='[ForgeBuild] %(levelname)s: %(message)s'
-)
+handler = logging.StreamHandler()
+
+
+SUCCESS_LEVEL = 25
+class ColorFormatter(logging.Formatter):
+    COLORS = {
+        logging.DEBUG: "\033[36m",     # Cyan
+        logging.INFO: "\033[0m",       # White/default
+        SUCCESS_LEVEL: "\033[32m",     # Green
+        logging.WARNING: "\033[33m",   # Yellow
+        logging.ERROR: "\033[31m",     # Red
+        logging.CRITICAL: "\033[1;41m" # Bold red background
+    }
+    RESET = "\033[0m"
+
+    def format(self, record):
+        color = self.COLORS.get(record.levelno, self.RESET)
+        message = super().format(record)
+        return f"{color}{message}{self.RESET}"
+formatter = ColorFormatter('[ForgeBuild] %(levelname)s: %(message)s')
+logging.addLevelName(SUCCESS_LEVEL, "SUCCESS")
+handler.setFormatter(formatter)
+
+def success(self, message, *args, **kwargs):
+    if self.isEnabledFor(SUCCESS_LEVEL):
+        self._log(SUCCESS_LEVEL, message, args, **kwargs)
+
+logging.Logger.success = success
+
+logger = logging.getLogger("ForgeBuild")
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
 logger = logging.getLogger("ForgeBuild")
 
 CACHE_PATH = ".forgebuild/cache.json"
@@ -110,7 +139,7 @@ def run_diagnostics():
     else:
         logger.warning("Cache folder missing — builds may be slower or fail")
 
-    logger.info("Diagnostics complete.")
+    logger.success("Diagnostics complete.")
 
 def sync_dependencies(force=False):
     start_sync = time.perf_counter()
@@ -158,7 +187,7 @@ def sync_dependencies(force=False):
         if result.returncode != 0:
             logger.error(f"Failed to clone {repo} — exit code {result.returncode}")
         else:
-            logger.info(f"Cloned {name} in {clone_end - clone_start:.2f} seconds")
+            logger.success(f"Cloned {name} in {clone_end - clone_start:.2f} seconds")
 
     end_sync = time.perf_counter()
     logger.info(f"Total dependency sync time: {end_sync - start_sync:.2f} seconds")
@@ -189,7 +218,7 @@ int main() {
                 "sources": ["src/main.cpp"],
                 "output": "build/app.exe",
                 "compiler": "clang++",
-                "flags": ["-Wall"]
+                "flags": ["-Wall","-Iinclude"]
             }
         },
         "dependencies": []
@@ -197,6 +226,11 @@ int main() {
 
     with open("forgebuild.json", "w") as f:
         json.dump(config, f, indent=4)
+    try:
+        os.makedirs("include",exists_ok=True)
+    except Exception as e:
+        logger.critical(f"something has gone horribly wrong: {e}")
+        return
 
     # Generate PowerShell wrapper
     script_path = os.path.abspath(__file__)
@@ -318,7 +352,8 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
             os.remove(exe_path)
             logger.info(f"Deleted previous executable: {exe_path}")
         except Exception as e:
-            logger.warning(f"Could not delete old executable: {e}")
+            logger.critical(f"Could not delete old executable: {e}")
+            return
 
     os.makedirs(".forgebuild/cache", exist_ok=True)
 
@@ -350,7 +385,7 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
 
         if should_compile:
             thr_id = threading.get_ident()
-            logger.info(f"Compiling {src} -> {obj} on thread {thr_id}")
+            logger.info(f"Compiling {src} -> {obj} on thread {thr_id}") # warn it because well. its important.
             cmd = [compiler] + flags + ["-c", src, "-o", obj]
             result = subprocess.run(cmd, capture_output=True, text=True)
             if verbose:
@@ -394,7 +429,7 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
     logger.info(prnt)
 
     if result.returncode == 0 and result:
-        logger.info(f"Build succeeded: {output}")
+        logger.success(f"Build succeeded: {output}")
         logger.info("saving to cache...")
         try:
             with cache_lock:
@@ -408,7 +443,7 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
         logger.info("stderr:\n" + (result.stderr or " [empty]"))
     bend = time.perf_counter()
     final_ms = (bend - build_timer) * 1000
-    logger.info(f"build took: {final_ms}ms")
+    logger.success(f"build took: {final_ms}ms")
 
 
 staffroll = [
