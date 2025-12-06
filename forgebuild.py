@@ -215,7 +215,12 @@ int main() {
         "targets": {
             "app": {
                 "nocache" : "no",
-                "sources": ["src/main.cpp"],
+                "sources": [
+                "src/**/*.cpp",
+                "src/**/*.c",
+                "include/**/*.cpp",
+                "include/**/*.c"
+                ],
                 "output": "build/app.exe",
                 "compiler": "clang++",
                 "flags": ["-Wall","-Iinclude"]
@@ -227,7 +232,7 @@ int main() {
     with open("forgebuild.json", "w") as f:
         json.dump(config, f, indent=4)
     try:
-        os.makedirs("include",exists_ok=True)
+        os.makedirs("include",exist_ok=True)
     except Exception as e:
         logger.critical(f"something has gone horribly wrong: {e}")
         return
