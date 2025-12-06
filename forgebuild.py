@@ -19,7 +19,9 @@ class ColorFormatter(logging.Formatter):
         SUCCESS_LEVEL: "\033[32m",     # Green
         logging.WARNING: "\033[33m",   # Yellow
         logging.ERROR: "\033[31m",     # Red
-        logging.CRITICAL: "\033[1;41m" # Bold red background
+        logging.CRITICAL: "\033[5;31m"  # Blinking red (careful with this one!)
+
+ # Bold red background
     }
     RESET = "\033[0m"
 
