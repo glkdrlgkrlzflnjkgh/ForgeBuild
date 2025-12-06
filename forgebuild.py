@@ -407,7 +407,7 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
             with cache_lock:
                 cache[src] = src_hash
             end = time.perf_counter()
-            logger.info(f"thread {thr_id} has finished compiling {src}")
+            logger.info(f"thread {thr_id} has finished compiling {src}") # we have finished compilation of this file!
             logger.info(f"thread {thr_id} took: {end - comp_time:.3f}ms")
 
 
