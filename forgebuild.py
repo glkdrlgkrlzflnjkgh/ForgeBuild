@@ -469,7 +469,10 @@ staffroll = [
     
 ]
 def main():
+    # Set up command-line argument parser with ForgeBuild description
     parser = argparse.ArgumentParser(description="ForgeBuild 4.1 — Python Build System for C++")
+
+    # Define supported command-line options
     parser.add_argument("--init", action="store_true", help="Initialize a new project")
     parser.add_argument("--check", action="store_true", help="Run diagnostics")
     parser.add_argument("--build", action="store_true", help="Build your project")
@@ -477,47 +480,64 @@ def main():
     parser.add_argument("--force-sync", action="store_true", help="Force re-sync of all dependencies")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose compiler output")
     parser.add_argument("--force-rebuild", action="store_true", help="Recompile everything, ignoring cache")
-    parser.add_argument("--credits", action="store_true", help="view the credits!")
-    parser.add_argument("--fast", action="store_true", help="turn on -Ofast, NOT RECOMMENDED!")
-    parser.add_argument("--fr", action="store_true", help="see --force-rebuild")
+    parser.add_argument("--credits", action="store_true", help="View the credits")
+    parser.add_argument("--fast", action="store_true", help="Enable -Ofast optimization (NOT RECOMMENDED!)")
+    parser.add_argument("--fr", action="store_true", help="Alias for --force-rebuild")
     parser.add_argument("--jobs", type=int, help="Number of parallel compile jobs (default: auto)")
-    parser.add_argument('--run', action='store_true', help='Run the compiled executable after build')
-    parser.add_argument("--compiler", type=str, help="override the compiler that will be used for compilation and linking")
+    parser.add_argument("--run", action="store_true", help="Run the compiled executable after build")
+    parser.add_argument("--compiler", type=str, help="Override the compiler used for compilation and linking")
+
+    # Parse arguments from command line
     args = parser.parse_args()
 
+    # If no arguments were provided, give a helpful hint and exit
     if not any(vars(args).values()):
         logger.info("HINT: if you were trying to build, you now need to run forgebuild --build")
         return
+
+    # Show credits if requested
     if args.credits:
         for line in staffroll:
             print(line)
-            time.sleep(.08)
+            time.sleep(.08)  # small delay for scrolling effect
         return
+
+    # Initialize a new project
     if args.init:
         init_project()
+
+    # Run diagnostics
     if args.check:
         run_diagnostics()
+
+    # Sync dependencies (optionally force re-sync)
     if args.sync:
         sync_dependencies(force=args.force_sync)
+
+    # Prevent mixing --build and --force-rebuild flags
     if args.force_rebuild and args.build:
         logger.critical("you cannot mix --build and --force-build!")
         exit(1)
+
+    # Handle normal build
     if args.build:
-            fst = args.fast
-            if args.compiler is not None and not (args.fr or args.force_rebuild):
-                logger.critical("force-rebuilding is required when overriding compilers!")
-                return
-            build_project(verbose=args.verbose, use_cache=True, fast=fst,jobs=args.jobs,comp=args.compiler)
+        fst = args.fast
+        # If compiler override is requested, force rebuild must be enabled
+        if args.compiler is not None and not (args.fr or args.force_rebuild):
+            logger.critical("force-rebuilding is required when overriding compilers!")
+            return
+        build_project(verbose=args.verbose, use_cache=True, fast=fst, jobs=args.jobs, comp=args.compiler)
+
+    # Handle force rebuild (ignores cache)
     if args.force_rebuild or args.fr:
-            fst = args.fast
-            build_project(verbose=args.verbose, use_cache=False, fast=fst,jobs=args.jobs,comp=args.compiler)
+        fst = args.fast
+        build_project(verbose=args.verbose, use_cache=False, fast=fst, jobs=args.jobs, comp=args.compiler)
+
+    # Run the compiled executable
     if args.run:
         run_project(verbose=args.verbose)
-        
-    
-            
 
 
-
+# Entry point: only run main() if script is executed directly
 if __name__ == "__main__":
     main()
