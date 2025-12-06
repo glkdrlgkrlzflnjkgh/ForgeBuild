@@ -45,7 +45,18 @@ logger.addHandler(handler)
 logger = logging.getLogger("ForgeBuild")
 
 CACHE_PATH = ".forgebuild/cache.json"
-
+def parse_dependencies(depfile): # yeah this is gonna help me is it? OKAY LETS GET RID OF THE FOG I CANT SEE!!!
+    try:
+        with open(depfile, "r") as f:
+            content = f.read()
+        # depfile format: target: dep1 dep2 dep3 ...
+        parts = content.replace("\\\n", " ").split(":")
+        if len(parts) > 1:
+            deps = parts[1].split()
+            return deps
+    except Exception as e:
+        logger.error(f"Failed to parse {depfile}: {e}")
+    return []
 def hash_file(path):
     import hashlib
     h = hashlib.sha256()
@@ -368,53 +379,68 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
 
     def compile_source(src):
         comp_time = time.perf_counter()
-
         nonlocal compiled_count
         
         obj = os.path.join(".forgebuild", "cache", os.path.basename(src).replace(".cpp", ".forgebin"))
+        depfile = os.path.join(".forgebuild", "cache", os.path.basename(src).replace(".cpp", ".d"))
 
         with object_lock:
             object_files.append(obj)
 
         with cache_lock:
             src_hash = hash_file(src)
-            cached_hash = cache.get(src)
+            cached_entry = cache.get(src, {})
+            cached_cpp_hash = cached_entry.get("cpp_hash")
+            cached_headers = cached_entry.get("headers", {})
 
             if verbose:
                 logger.info(f"Current hash: {src_hash}")
-                logger.info(f"Cached hash: {cached_hash}")
+                logger.info(f"Cached cpp hash: {cached_cpp_hash}")
 
             should_compile = (
                 not use_cache or
-                cached_hash != src_hash or
+                cached_cpp_hash != src_hash or
                 not os.path.exists(obj)
             )
 
-        if should_compile:
+        # Always parse headers if depfile exists
+        headers = parse_dependencies(depfile) if os.path.exists(depfile) else []
+        header_hashes = {h: hash_file(h) for h in headers if os.path.exists(h)}
+
+        # Detect header changes
+        header_changed = any(
+            cached_headers.get(h) != header_hashes[h] for h in header_hashes
+        )
+
+        if should_compile or header_changed:
             thr_id = threading.get_ident()
-            logger.info(f"Compiling {src} -> {obj} on thread {thr_id}") # warn it because well. its important.
-            cmd = [compiler] + flags + ["-c", src, "-o", obj]
+            logger.info(f"Compiling {src} -> {obj} on thread {thr_id}")
+            cmd = [compiler] + flags + ["-c", src, "-o", obj, "-MMD", "-MF", depfile]
             result = subprocess.run(cmd, capture_output=True, text=True)
+
             if verbose:
                 logger.info("stdout:\n" + (result.stdout or " [empty]"))
                 logger.info("stderr:\n" + (result.stderr or " [empty]"))
+
             if result.returncode != 0:
                 logger.fatal(f"Compilation failed for {src}")
                 logger.fatal("build FAILED.")
-                logger.info("stdout:\n" + (result.stdout or " [empty]"))
-                logger.info("stderr:\n" + (result.stderr or " [empty]"))
                 return False
+
             with cache_lock:
-                cache[src] = src_hash
+                cache[src] = {
+                    "cpp_hash": src_hash,
+                    "headers": header_hashes
+                }
+
             end = time.perf_counter()
-            logger.info(f"thread {thr_id} has finished compiling {src}") # we have finished compilation of this file!
-            logger.info(f"thread {thr_id} took: {end - comp_time:.3f}ms")
-
-
+            logger.info(f"thread {thr_id} finished compiling {src} in {end - comp_time:.3f}s")
             compiled_count += 1
         else:
             logger.info(f"Skipping compile of {src} — no changes detected.")
+
         return True
+
         
     with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as executor:
         logger.info(f"using: {jobs or os.cpu_count()} threads!")
