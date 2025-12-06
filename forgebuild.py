@@ -421,8 +421,7 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
         futures = {executor.submit(compile_source, src): src for src in sources}
         for future in concurrent.futures.as_completed(futures):
             if future.result() is False:
-                logger.critical("Build aborted due to compilation error.")
-                return
+                return # return instead of printing, since we already print this error!
 
     logger.info(f"Linking: {' and '.join(object_files)} into {output}")
     cmd = [compiler] + object_files + ["-o", output]
