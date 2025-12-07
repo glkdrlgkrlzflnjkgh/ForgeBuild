@@ -433,8 +433,7 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
                 logger.info("stderr:\n" + (result.stderr or " [empty]"))
 
             if result.returncode != 0:
-                logger.fatal(f"Compilation failed for {src}")
-                logger.fatal("build FAILED.")
+                logger.critical(f"Compilation failed for {src}")
                 return False
 
             with cache_lock:
