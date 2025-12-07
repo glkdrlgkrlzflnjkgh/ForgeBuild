@@ -552,7 +552,7 @@ def main():
         sync_dependencies(force=args.force_sync)
 
     # Prevent mixing --build and --force-rebuild flags
-    if args.force_rebuild and args.build:
+    if (args.force_rebuild or args.fr) and args.build:
         logger.critical("you cannot mix --build and --force-build!")
         exit(1)
 
