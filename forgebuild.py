@@ -414,9 +414,19 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
 
         if should_compile or header_changed:
             thr_id = threading.get_ident()
+            if should_compile:
+                logger.info(f"Source file {src} has changed or is not cached.")
+            elif header_changed:
+                logger.info(f"One or more headers for {src} have changed.")
             logger.info(f"Compiling {src} -> {obj} on thread {thr_id}")
+
+            
             cmd = [compiler] + flags + ["-c", src, "-o", obj, "-MMD", "-MF", depfile]
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True)
+            except Exception as e:
+                logger.critical("Failed to start compilation process: " + str(e))
+                return False
 
             if verbose:
                 logger.info("stdout:\n" + (result.stdout or " [empty]"))
