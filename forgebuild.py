@@ -45,7 +45,7 @@ logger.addHandler(handler)
 logger = logging.getLogger("ForgeBuild")
 
 CACHE_PATH = ".forgebuild/cache.json"
-def parse_dependencies(depfile): # yeah this is gonna help me is it? OKAY LETS GET RID OF THE FOG I CANT SEE!!!
+def parse_dependencies(depfile): # yeah this is gonna help me is it? OKAY LETS GET RID OF THE FOG I CANT SEE!!! - jonathan pearce in one robot wars episode (specifically series 10 ep 6, the ten robot rumble and grand final!)
     try:
         with open(depfile, "r") as f:
             content = f.read()
@@ -135,8 +135,12 @@ def run_diagnostics():
 
     if gcc_path:
         logger.info(f"Found GCC at {gcc_path}")
+    else:
+        logger.warning("GCC not found in PATH")
     if clang_path:
         logger.info(f"Found Clang at {clang_path}")
+    else:
+        logger.warning("Clang not found in PATH")
     if not clang_path and not gcc_path:
         logger.error("No supported C++ compiler found (GCC or Clang)")
 
