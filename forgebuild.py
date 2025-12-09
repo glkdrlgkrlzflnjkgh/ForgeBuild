@@ -314,7 +314,9 @@ def run_project(verbose=False):
             break
 
 
-def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=None):
+def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=None, argu=None):
+    if not argu.sync and not argu.force_sync:
+        logger.warning("it is recommended to run --sync before building to ensure all dependencies are up to date! (ignore this if you dont have dependencies or have already synced!)")
     build_timer = time.perf_counter()
     compiled_count = 0
     config = load_config(verbose=verbose)
@@ -322,7 +324,7 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
     target = list(config["targets"].keys())[0]
     tconf = config["targets"][target]
 
-    nocache = tconf["nocache"]
+    nocache = tconf.get("nocache", "no") # default to "no" if not specified
     if nocache not in ("yes", "no"):
         logger.error("Invalid value for 'nocache'. Must be 'yes' or 'no'.")
         return
@@ -567,12 +569,12 @@ def main():
         if args.compiler is not None and not (args.fr or args.force_rebuild):
             logger.critical("force-rebuilding is required when overriding compilers!")
             return
-        build_project(verbose=args.verbose, use_cache=True, fast=fst, jobs=args.jobs, comp=args.compiler)
+        build_project(verbose=args.verbose, use_cache=True, fast=fst, jobs=args.jobs, comp=args.compiler, argu=args)
 
     # Handle force rebuild (ignores cache)
     if args.force_rebuild or args.fr:
         fst = args.fast
-        build_project(verbose=args.verbose, use_cache=False, fast=fst, jobs=args.jobs, comp=args.compiler)
+        build_project(verbose=args.verbose, use_cache=False, fast=fst, jobs=args.jobs, comp=args.compiler, argu=args)
 
     # Run the compiled executable
     if args.run:
