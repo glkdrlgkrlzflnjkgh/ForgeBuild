@@ -47,7 +47,7 @@ logger.addHandler(handler)
 logger = logging.getLogger("ForgeBuild")
 
 CACHE_PATH = ".forgebuild/cache.json"
-def parse_dependencies(depfile): # yeah this is gonna help me is it? OKAY LETS GET RID OF THE FOG I CANT SEE!!! - jonathan pearce in one robot wars episode (specifically series 10 ep 6, the ten robot rumble and grand final!)
+def parse_dependencies(depfile): 
     try:
         with open(depfile, "r") as f:
             content = f.read()
@@ -70,7 +70,7 @@ def hash_file(path):
         return h.hexdigest()
     except Exception as e:
         logger.error(f"Failed to hash {path}: {e}")
-        return "ERROR"
+        return f"ERROR: {e}"
 from pathlib import Path
 
 def expand_sources(source_list):
@@ -132,19 +132,16 @@ def run_diagnostics():
     logger.info("Running diagnostics...")
 
     # 1. Check for compilers
-    gcc_path = shutil.which("gcc")
     clang_path = shutil.which("clang")
 
-    if gcc_path:
-        logger.info(f"Found GCC at {gcc_path}")
-    else:
-        logger.warning("GCC not found in PATH")
+
+
     if clang_path:
         logger.info(f"Found Clang at {clang_path}")
     else:
         logger.warning("Clang not found in PATH")
-    if not clang_path and not gcc_path:
-        logger.error("No supported C++ compiler found (GCC or Clang)")
+    if not clang_path:
+        logger.error("No supported C++ compiler found (Clang)")
 
     # 2. Check for forgebuild.json
     if os.path.isfile("forgebuild.json"):
