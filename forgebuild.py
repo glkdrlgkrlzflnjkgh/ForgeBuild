@@ -239,7 +239,7 @@ int main() {
                 "include/**/*.c"
                 ],
                 "output": "build/app.exe",
-                "compiler": "clang++",
+                "compiler": "clang++", #FIXME: this field should be removed due to removal of G++ support for 5.0
                 "flags": ["-Wall","-Iinclude"]
             }
         },
@@ -493,11 +493,12 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
 
 
 staffroll = [
-    "--ForgeBuild 4.1--",
+    "--ForgeBuild 5.0--",
     "",
     "",
     "--PROGRAMMING & DESIGN--",
-    "glkdrlgkrlzflnjkgh",
+    "glkdrlgkrlzflnjkgh - The big neurodivergent big cheese behind ForgeBuild",
+    "AND CONTRIBUTORS",
     "",
     "",
     "--SPECIAL THANKS--",
@@ -510,7 +511,7 @@ staffroll = [
 ]
 def main():
     # Set up command-line argument parser with ForgeBuild description
-    parser = argparse.ArgumentParser(description="ForgeBuild 4.1 — Python Build System for C++")
+    parser = argparse.ArgumentParser(description="ForgeBuild 5.0 — Python Build System for C++")
 
     # Define supported command-line options
     parser.add_argument("--init", action="store_true", help="Initialize a new project")
