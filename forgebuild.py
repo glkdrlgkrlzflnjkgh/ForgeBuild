@@ -10,7 +10,9 @@ import time
 import threading
 handler = logging.StreamHandler()
 
-
+if sys.version_info < (3,10):
+    logger.fatal("ForgeBuild requires Python 3.10 or higher! please update your Python installation.")
+    sys.exit(1)
 SUCCESS_LEVEL = 25
 class ColorFormatter(logging.Formatter):
     COLORS = {
