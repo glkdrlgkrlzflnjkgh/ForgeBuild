@@ -340,15 +340,12 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
     compiler = tconf["compiler"]
     if comp != None:
         compiler = comp
-    if compiler == 'g++':
-        logger.warning("g++ support is EXPERIMENTAL and is NOT recommended for production!")
-        logger.warning("g++ is NOT compatible with caching. disabling caching...")
-        use_cache = False
+
     elif compiler == "clang":
         logger.critical("if you were intending to use clang (thinking it was an alias for clang++) it is NOT. please rebuild with clang++!")
         return
-    if compiler not in ("g++", "clang++"):
-        logger.critical("supported compilers are: clang++ (recommended) and g++ (not recommended)")
+    if compiler not in ("clang++"):
+        logger.critical("unsupported compiler specified! only clang++ is supported (G++ was removed at 10/12/2025 for the upcoming 5.0 release!)")
         return
     logger.info(f"using compiler: {compiler}")
 
@@ -528,7 +525,7 @@ def main():
     parser.add_argument("--fr", action="store_true", help="Alias for --force-rebuild")
     parser.add_argument("--jobs", type=int, help="Number of parallel compile jobs (default: auto)")
     parser.add_argument("--run", action="store_true", help="Run the compiled executable after build")
-    parser.add_argument("--compiler", type=str, help="Override the compiler used for compilation and linking")
+
 
     # Parse arguments from command line
     args = parser.parse_args()
@@ -566,15 +563,13 @@ def main():
     if args.build:
         fst = args.fast
         # If compiler override is requested, force rebuild must be enabled
-        if args.compiler is not None and not (args.fr or args.force_rebuild):
-            logger.critical("force-rebuilding is required when overriding compilers!")
-            return
-        build_project(verbose=args.verbose, use_cache=True, fast=fst, jobs=args.jobs, comp=args.compiler, argu=args)
+        # (This is now removed since I have removed G++ support)
+        build_project(verbose=args.verbose, use_cache=True, fast=fst, jobs=args.jobs, argu=args)
 
     # Handle force rebuild (ignores cache)
     if args.force_rebuild or args.fr:
         fst = args.fast
-        build_project(verbose=args.verbose, use_cache=False, fast=fst, jobs=args.jobs, comp=args.compiler, argu=args)
+        build_project(verbose=args.verbose, use_cache=False, fast=fst, jobs=args.jobs, argu=args)
 
     # Run the compiled executable
     if args.run:
