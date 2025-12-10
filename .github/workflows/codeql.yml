@@ -13,9 +13,9 @@ name: "CodeQL Advanced"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "forgebuild-5.0" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "forgebuild-5.0" ]
   schedule:
     - cron: '23 7 * * 0'
 
