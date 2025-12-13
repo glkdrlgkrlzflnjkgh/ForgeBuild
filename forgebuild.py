@@ -9,7 +9,7 @@ import time
 
 import threading
 handler = logging.StreamHandler()
-
+COMPILER_LOGS = ""
 if sys.version_info < (3,10):
     logger.fatal("ForgeBuild requires Python 3.10 or higher! please update your Python installation.")
     sys.exit(1)
@@ -84,7 +84,7 @@ def expand_sources(source_list):
             matched = Path(base).rglob(pattern)
             for path in matched:
                 norm = os.path.normpath(str(path))
-                # Skip hidden folders or dot-prefixed paths
+                # Skip hidden folders or dot-prefixed paths, we ignore dot-prefixed paths to avoid looking in forgebuild's cache folder. since it is independent per project!
                 if any(part.startswith('.') for part in Path(norm).parts):
                     continue
                 expanded.add(norm)
@@ -131,7 +131,7 @@ def save_cache(cache):
 def run_diagnostics():
     logger.info("Running diagnostics...")
 
-    # 1. Check for compilers
+    # 1. Check for compiler
     clang_path = shutil.which("clang")
 
 
@@ -141,7 +141,7 @@ def run_diagnostics():
     else:
         logger.warning("Clang not found in PATH")
     if not clang_path:
-        logger.error("No supported C++ compiler found (Clang)")
+        logger.error("No supported C++ compiler found (Clang)") # We dont support G++ anymore, since that is dropped in 5.0
 
     # 2. Check for forgebuild.json
     if os.path.isfile("forgebuild.json"):
@@ -380,6 +380,7 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
     object_files = []
 
     def compile_source(src):
+        global COMPILER_LOGS
         comp_time = time.perf_counter()
         nonlocal compiled_count
         
@@ -431,12 +432,12 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
                 return False
 
             if verbose:
-                logger.info("stdout:\n" + (result.stdout or " [empty]"))
-                logger.info("stderr:\n" + (result.stderr or " [empty]"))
+
+                COMPILER_LOGS = "STDOUT:" + result.stdout + "\n" + "STDERR:" + result.stderr
 
             if result.returncode != 0:
-                logger.info("stdout:\n" + (result.stdout or " [empty]"))
-                logger.info("stderr:\n" + (result.stderr or " [empty]"))
+
+                COMPILER_LOGS = "STDOUT:" + result.stdout + "\n" + "STDERR:" + result.stderr
                 logger.critical(f"Compilation failed for {src}")
                 return False
 
@@ -454,14 +455,18 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
 
         return True
 
-        
+    build_succeed = True # default to true, we'll set to false if any compilation fails    
     with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as executor:
         logger.info(f"using: {jobs or os.cpu_count()} threads!")
         futures = {executor.submit(compile_source, src): src for src in sources}
         for future in concurrent.futures.as_completed(futures):
-            if future.result() is False:
-                return # return instead of printing, since we already print this error!
-
+            if not future.result():
+                build_succeed = False
+                break # exit early on compilation failure
+    if not build_succeed:
+        logger.critical("Build failed due to compilation errors.")
+        logger.info("Compiler logs:\n" + COMPILER_LOGS or "[]empty]")
+        return # we do this to avoid linking if compilation failed, since that would waste time and likely fail anyway
     logger.info(f"Linking: {' and '.join(object_files)} into {output}")
     cmd = [compiler] + object_files + ["-o", output]
     result = subprocess.run(cmd, capture_output=True, text=True)
