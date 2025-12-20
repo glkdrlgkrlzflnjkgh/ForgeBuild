@@ -172,15 +172,15 @@ def sync_dependencies(force=False):
 
     for dep in deps:
         if not isinstance(dep, dict):
-            logger.warning(f"Skipping malformed dependency entry: {dep}")
-            continue
+            logger.fatal(f"Malformed dependency entry: {dep}")
+            return
 
         repo = dep.get("repo")
         name = dep.get("name")
 
         if not repo or not name:
-            logger.warning(f"Dependency missing 'name' or 'repo': {dep}")
-            continue
+            logger.fatal(f"Dependency missing 'name' or 'repo': {dep}")
+            return
 
         path = os.path.join(include_dir, name)
 
@@ -191,7 +191,6 @@ def sync_dependencies(force=False):
             else:
                 logger.info(f"Skipping {name} — already cloned")
                 continue
-
         logger.info(f"Cloning {name} from {repo} into {path}")
         clone_start = time.perf_counter()
         result = subprocess.run(["gh", "repo", "clone", repo, path], capture_output=True, text=True)
