@@ -561,27 +561,31 @@ def main():
         return
     if args.sodium_bad:
         msg = """
-            jellysquid3, are you reading this?\n
-            Well. I am saying this because you gave me a scary legal threat over my Sodium fork.\n
-            So here is my message to you:\n
-            Stay 120 miles away from my projects unless you want to get bonked by a cartoon hammer.\n
-            Also. I did delete my sodium fork. Happy now?\n
-            - glkdrlgkrlzflnjkgh\n
-            And yes, dont even THINK about me trying to contribute to sodium again, Like. Why would I want to do that?!\n
-            (PS. Trying to scare young *neurodiverse* developers is... not cool.)\n
-            (PPS. I wonder if this will end up like the plot of wallace and gromit: Vengance Most Fowl)\n
-            (wow. that was a lot of parentheses.)\n
-            Also I saw your dissmisive comment on my issue on the sodium repo, also. GET OUT OF MY PROJECTS. THANK YOU. GOODBYE.\n
-            (PPPS. Scary legal threats on issues IS A BAD IDEA. JUST DON'T DO IT.)\n
-
+            jellysquid3, are you reading this?
+            Well. I am saying this because you gave me a scary legal threat over my Sodium fork.
+            So here is my message to you:
+            Stay 120 miles away from my projects unless you want to get bonked by a cartoon hammer.
+            Also. I did delete my sodium fork. Happy now?
+            - glkdrlgkrlzflnjkgh
+            And yes, dont even THINK about me trying to contribute to sodium again, Like. Why would I want to do that?!
+            (PS. Trying to scare young *neurodiverse* developers is... not cool.)
+            (PPS. I wonder if this will end up like the plot of wallace and gromit: Vengance Most Fowl)
+            (wow. that was a lot of parentheses.)
+            Also I saw your dissmisive comment on my issue on the sodium repo, also. GET OUT OF MY PROJECTS. THANK YOU. GOODBYE.
+            (PPPS. Scary legal threats on issues IS A BAD IDEA. JUST DON'T DO IT.)
+            (PPPPS. Also, get wrecked.)
+            (PPPPPS. Also. said issue comment ENDED UP... uhm... let me remember, making me... cry? yes. it did. just... wow. *and that was only on 04/01/2026...*)
             
-
         """
-        
+        print("huh. so you found the easter egg... - well. here goes nothing, If you're jellysquid3, I am cooked.")
+
         for line in msg.splitlines():
-            print(GlitchText(line))
-            time.sleep(.1)
+            logger.critical(GlitchText(line))
+            time.sleep(.5)
+        print("was that... too much?")
+        print("If you want to see why I added this? https://github.com/CaffeineMC/sodium/issues/3256 yes. that is why.")
         return
+
     # Initialize a new project
     if args.init:
         init_project()
