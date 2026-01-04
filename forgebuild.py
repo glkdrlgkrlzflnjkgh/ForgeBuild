@@ -563,6 +563,9 @@ def main():
             Well. I am saying this because you gave me a scary legal threat over my Sodium fork.\n
             So here is my message to you:\n
             Stay 120 miles away from my projects unless you want to get bonked by a cartoon hammer.\n
+            Also. I did delete my sodium fork. Happy now?\n
+            - glkdrlgkrlzflnjkgh\n
+            (PS. Trying to scare young *neurodiverse* developers is... not cool.)\n
 
         """
         
