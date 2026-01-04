@@ -509,11 +509,13 @@ def build_project(verbose=False, use_cache=False, fast=False, jobs=None,comp=Non
 
 
 staffroll = [
-    "--ForgeBuild 5.0--",
+    "<--ForgeBuild 5.0-->",
     "",
     "",
     "--PROGRAMMING & DESIGN--",
     "glkdrlgkrlzflnjkgh - The big neurodivergent big cheese behind ForgeBuild",
+    "Litterally only... me. for now. (seriously. CONTRIBUTE!!!)",
+    "",
     "AND CONTRIBUTORS",
     "",
     "",
@@ -565,7 +567,9 @@ def main():
             Stay 120 miles away from my projects unless you want to get bonked by a cartoon hammer.\n
             Also. I did delete my sodium fork. Happy now?\n
             - glkdrlgkrlzflnjkgh\n
+            And yes, dont even THINK about me trying to contribute to sodium again, Like. Why would I want to do that?!\n
             (PS. Trying to scare young *neurodiverse* developers is... not cool.)\n
+            
 
         """
         
