@@ -569,11 +569,18 @@ def main():
             - glkdrlgkrlzflnjkgh\n
             And yes, dont even THINK about me trying to contribute to sodium again, Like. Why would I want to do that?!\n
             (PS. Trying to scare young *neurodiverse* developers is... not cool.)\n
+            (PPS. I wonder if this will end up like the plot of wallace and gromit: Vengance Most Fowl)\n
+            (wow. that was a lot of parentheses.)\n
+            Also I saw your dissmisive comment on my issue on the sodium repo, also. GET OUT OF MY PROJECTS. THANK YOU. GOODBYE.\n
+            (PPPS. Scary legal threats on issues IS A BAD IDEA. JUST DON'T DO IT.)\n
+
             
 
         """
         
-        logger.critical(GlitchText(msg))
+        for line in msg.splitlines():
+            print(GlitchText(line))
+            time.sleep(.1)
         return
     # Initialize a new project
     if args.init:
