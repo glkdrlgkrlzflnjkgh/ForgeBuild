@@ -38,7 +38,20 @@ handler.setFormatter(formatter)
 def success(self, message, *args, **kwargs):
     if self.isEnabledFor(SUCCESS_LEVEL):
         self._log(SUCCESS_LEVEL, message, args, **kwargs)
+def GlitchText(text):
+    import random
+    # Unicode combining diacritical marks (the real glitch stuff)
+    glitch_chars = [chr(i) for i in range(0x0300, 0x036F)]
 
+    glitched = ''
+    for char in text:
+        if char.isalnum() and random.random() < 0.2:  # 20% chance to glitch
+            # Add 1–3 random glitch marks to the character
+            glitched += char + ''.join(random.choice(glitch_chars) for _ in range(random.randint(1, 3)))
+        else:
+            glitched += char
+
+    return glitched
 logging.Logger.success = success
 
 logger = logging.getLogger("ForgeBuild")
@@ -545,14 +558,15 @@ def main():
             time.sleep(.08)  # small delay for scrolling effect
         return
     if args.sodium_bad:
-        msg = (
-            "jellysquid3, are you reading this?\n",
-            "Well. I am saying this because you gave me a scary legal threat over my Sodium fork.\n",
-            "So here is my message to you:\n",
-            "Stay 120 miles away from my projects unless you want to get bonked by a cartoon hammer.\n"
+        msg = """
+            jellysquid3, are you reading this?\n
+            Well. I am saying this because you gave me a scary legal threat over my Sodium fork.\n
+            So here is my message to you:\n
+            Stay 120 miles away from my projects unless you want to get bonked by a cartoon hammer.\n
 
-        )
-        logger.critical(msg)
+        """
+        
+        logger.critical(GlitchText(msg))
         return
     # Initialize a new project
     if args.init:
