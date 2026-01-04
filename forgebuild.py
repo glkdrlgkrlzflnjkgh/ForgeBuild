@@ -529,8 +529,7 @@ def main():
     parser.add_argument("--fr", action="store_true", help="Alias for --force-rebuild")
     parser.add_argument("--jobs", type=int, help="Number of parallel compile jobs (default: auto)")
     parser.add_argument("--run", action="store_true", help="Run the compiled executable after build")
-
-
+    parser.add_argument("--sodium-bad", action="store_true", help=argparse.SUPPRESS)  # hidden easter egg. DO NOT DOCUMENT THIS FLAG. (yes. it is an easter egg. I want to VENGANCE.... EHEHEHE)
     # Parse arguments from command line
     args = parser.parse_args()
 
@@ -545,7 +544,16 @@ def main():
             print(line)
             time.sleep(.08)  # small delay for scrolling effect
         return
+    if args.sodium_bad:
+        msg = (
+            "jellysquid3, are you reading this?\n",
+            "Well. I am saying this because you gave me a scary legal threat over my Sodium fork.\n",
+            "So here is my message to you:\n",
+            "Stay 120 miles away from my projects unless you want to get bonked by a cartoon hammer.\n"
 
+        )
+        logger.critical(msg)
+        return
     # Initialize a new project
     if args.init:
         init_project()
