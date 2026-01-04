@@ -10,8 +10,7 @@ So I built something better — something that makes sense to me, and hopefully 
 🔧 Supported Compilers
 ForgeBuild currently supports:
 - clang++
-- g++
-More compiler support may be added in future releases.
+- (G++ was removed in 5.0.)
 
 🚀 Installation Instructions
 - Clone this repo:
