@@ -577,7 +577,9 @@ def main():
             (PPPPPS. Also. said issue comment ENDED UP... uhm... let me remember, making me... cry? yes. it did. just... wow. *and that was only on 04/01/2026...*)
             
         """
-        print("huh. so you found the easter egg... - well. here goes nothing, If you're jellysquid3, I am cooked.")
+        print("Trying to build...")
+        time.sleep(2)
+        print("FAILED: SODIUM_NOTICED_ERROR")
 
         for line in msg.splitlines():
             logger.critical(GlitchText(line))
