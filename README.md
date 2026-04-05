@@ -1,7 +1,8 @@
 🔨 ForgeBuild
 ForgeBuild is a C++ build system written in Python.
 It’s currently in early development — contributions are welcome!
-
+!REALLY REALLY IMPORTANT!
+ForgeBuild doesnt work with linux right now: forgebuild's wrapper script is for powershell.... sigh.
 🧠 Why ForgeBuild?
 CMake wasn’t kind to my neurodiverse brain.
 It felt verbose, frustrating, and hard to reason about.
